@@ -3,11 +3,11 @@ import 'dart:io';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:path/path.dart' as p1;
 
-import '../domain/role.dart';
-import '../domain/user.dart';
-import '../domain/author.dart';
-import '../domain/book.dart';
-import '../domain/borrowdata.dart';
+import '../domain/models/role.dart';
+import '../domain/models/user.dart';
+import '../domain/models/author.dart';
+import '../domain/models/book.dart';
+import '../domain/models/borrowdata.dart';
 
 class LibraryDatabase{
   final Database _sqlite;
@@ -20,6 +20,7 @@ class LibraryDatabase{
     final filepath=p1.join(Directory.current.path,'library.db');
     return LibraryDatabase(filepath);
   }
+  
 
 
   void _createTables(){
@@ -34,7 +35,7 @@ class LibraryDatabase{
     userName TEXT NOT NULL,
     password TEXT NOT NULL,
     borrowTotal INTEGER NOT NULL,
-    role TEXT NOT NULL
+    role TEXT NOT NULL,
     FOREIGN KEY (role) REFERENCES roles(id) ON DELETE CASCADE
     );
     """);
@@ -43,7 +44,6 @@ class LibraryDatabase{
     id TEXT PRIMARY KEY,
     surname TEXT NOT NULL,
     name TEXT NOT NULL,
-    copies INTEGER NOT NULL,
     rating REAL NOT NULL
     );
     """);
@@ -53,6 +53,7 @@ class LibraryDatabase{
     title TEXT NOT NULL,
     desc TEXT NOT NULL,
     authorId TEXT NOT NULL,
+    copies INTEGER NOT NULL,
     rating REAL NOT NULL,
     FOREIGN KEY (authorId) REFERENCES Author(id) ON DELETE CASCADE
     );
@@ -65,6 +66,7 @@ class LibraryDatabase{
     FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (bookId) REFERENCES books(id) ON DELETE CASCADE
     );
+    
     """);
   }
   Database get sqlite=>_sqlite;
@@ -85,7 +87,7 @@ class LibraryDatabase{
   }
 
   void insertBook(Book book){
-      _sqlite.execute('INSERT OR REPLACE INTO books(id,title,desc,authorId,rating) VALUES(?,?,?,?,?)',
+      _sqlite.execute('INSERT OR REPLACE INTO books(id,title,desc,authorId,copies,rating) VALUES(?,?,?,?,?,?)',
       [book.id,
       book.title,
       book.desc,
@@ -95,7 +97,7 @@ class LibraryDatabase{
   }
 
   void insertAuthor(Author author){
-      _sqlite.execute('INSERT OR REPLACE INTO authors(id,surname,name,copies,rating) VALUES(?,?,?,?,?)',
+      _sqlite.execute('INSERT OR REPLACE INTO authors(id,surname,name,rating) VALUES(?,?,?,?)',
       [author.id,
       author.surname,
       author.name,
@@ -109,27 +111,27 @@ class LibraryDatabase{
       borrowData.bookId]);
   }
 
-  List<Role> getAllRoles(Role role){
+  List<Role> getAllRoles(){
     final rows=_sqlite.select('SELECT * FROM roles');
     return rows.map((row)=>Role.fromMap(row)).toList();
   }
 
-  List<User> getAllUsers(User user){
+  List<User> getAllUsers(){
       final rows=_sqlite.select('SELECT * FROM users');
       return rows.map((row)=>User.fromMap(row)).toList();
   }
 
-  List<Book> getAllBooks(Book book){
+  List<Book> getAllBooks(){
       final rows=_sqlite.select('SELECT * FROM books');
       return rows.map((row)=>Book.fromMap(row)).toList();
   }
 
-  List<Author> getAllAuthors(Author author){
+  List<Author> getAllAuthors(){
       final rows=_sqlite.select('SELECT * FROM authors');
       return rows.map((row)=>Author.fromMap(row)).toList();
   }
 
-  List<BorrowData> getAllBorrowData(BorrowData borrowData){
+  List<BorrowData> getAllBorrowData(){
       final rows=_sqlite.select('SELECT * FROM borrow_data');
       return rows.map((row)=>BorrowData.fromMap(row)).toList();
   }
@@ -172,12 +174,12 @@ class LibraryDatabase{
   void updateBook(Book book){
     _sqlite.execute('UPDATE books SET title=?,desc=?,authorId=?,copies=?,rating=? WHERE id=?',
     [book.title, book.desc, book.authorId, book.copies, book.rating, book.id]);
-}
+  }
 
-void updateAuthor(Author author){
-    _sqlite.execute('UPDATE authors SET surname=?,name=?,rating=? WHERE id=?',
-    [author.surname, author.name, author.rating, author.id]);
-}
+  void updateAuthor(Author author){
+      _sqlite.execute('UPDATE authors SET surname=?,name=?,rating=? WHERE id=?',
+      [author.surname, author.name, author.rating, author.id]);
+  }
 
   void updateBorrowData(BorrowData borrowData){
       _sqlite.execute('UPDATE borrow_data SET userId=?,bookId=? WHERE id=?',
@@ -207,6 +209,7 @@ void updateAuthor(Author author){
   void close(){
     _sqlite.dispose();
   }
+  
 }
 
 

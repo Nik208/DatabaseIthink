@@ -1,11 +1,11 @@
 import 'dart:io';
 
 import '../data/library_database.dart';
-import '../domain/role.dart';
-import '../domain/user.dart';
-import '../domain/author.dart';
-import '../domain/book.dart';
-import '../domain/borrowdata.dart';
+import '../domain/models/role.dart';
+import '../domain/models/user.dart';
+import '../domain/models/author.dart';
+import '../domain/models/book.dart';
+import '../domain/models/borrowdata.dart';
 
 
 void runMenu(LibraryDatabase db) {
@@ -92,7 +92,7 @@ void runMenu(LibraryDatabase db) {
 }
 
 void _printRoles(LibraryDatabase db) {
-  final list = db.getAllRoles(Role(id: '', name: ''));
+  final list = db.getAllRoles();
   if (list.isEmpty) {
     stdout.writeln('Ролей нет.');
     return;
@@ -103,7 +103,7 @@ void _printRoles(LibraryDatabase db) {
 }
 
 void _printUsers(LibraryDatabase db) {
-  final list = db.getAllUsers(User(id: '', userName: '', password: '', borrowTotal: 0, role: ''));
+  final list = db.getAllUsers();
   if (list.isEmpty) {
     stdout.writeln('Пользователей нет.');
     return;
@@ -114,7 +114,7 @@ void _printUsers(LibraryDatabase db) {
 }
 
 void _printBooks(LibraryDatabase db) {
-  final list = db.getAllBooks(Book(id: '', title: '', desc: '', authorId: '', copies: 0,  rating: 0));
+  final list = db.getAllBooks();
   if (list.isEmpty) {
     stdout.writeln('Книг нет.');
     return;
@@ -125,7 +125,7 @@ void _printBooks(LibraryDatabase db) {
 }
 
 void _printAuthors(LibraryDatabase db) {
-  final list = db.getAllAuthors(Author(id: '', surname: '', name: '', rating: 0));
+  final list = db.getAllAuthors();
   if (list.isEmpty) {
     stdout.writeln('Авторов нет.');
     return;
@@ -136,7 +136,7 @@ void _printAuthors(LibraryDatabase db) {
 }
 
 void _printBorrowData(LibraryDatabase db) {
-  final list = db.getAllBorrowData(BorrowData(id: '', userId: '', bookId: ''));
+  final list = db.getAllBorrowData();
   if (list.isEmpty) {
     stdout.writeln('Выдач нет.');
     return;
