@@ -1,10 +1,73 @@
+import 'dart:io';
+
 import 'package:sqlite3/sqlite3.dart';
-import 'package:database/database.dart';
+import 'package:path/path.dart' as p1;
 
+import '../domain/role.dart';
+import '../domain/user.dart';
+import '../domain/author.dart';
+import '../domain/book.dart';
+import '../domain/borrowdata.dart';
 
-class LibraryRepository{
+class LibraryDatabase{
   final Database _sqlite;
-  LibraryRepository(this._sqlite);
+
+  LibraryDatabase(String filepath):_sqlite= sqlite3.open(filepath){
+    _createTables();
+  }
+
+  factory LibraryDatabase.inApp(){
+    final filepath=p1.join(Directory.current.path,'library.db');
+    return LibraryDatabase(filepath);
+  }
+
+
+  void _createTables(){
+    _sqlite.execute("""CREATE TABLE IF NOT EXISTS roles(
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL
+    );
+    """);
+
+    _sqlite.execute("""CREATE TABLE IF NOT EXISTS users(
+    id TEXT PRIMARY KEY,
+    userName TEXT NOT NULL,
+    password TEXT NOT NULL,
+    borrowTotal INTEGER NOT NULL,
+    role TEXT NOT NULL
+    FOREIGN KEY (role) REFERENCES roles(id) ON DELETE CASCADE
+    );
+    """);
+
+    _sqlite.execute("""CREATE TABLE IF NOT EXISTS authors(
+    id TEXT PRIMARY KEY,
+    surname TEXT NOT NULL,
+    name TEXT NOT NULL,
+    copies INTEGER NOT NULL,
+    rating REAL NOT NULL
+    );
+    """);
+
+    _sqlite.execute("""CREATE TABLE IF NOT EXISTS books(
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    desc TEXT NOT NULL,
+    authorId TEXT NOT NULL,
+    rating REAL NOT NULL,
+    FOREIGN KEY (authorId) REFERENCES Author(id) ON DELETE CASCADE
+    );
+    """);
+
+    _sqlite.execute("""CREATE TABLE IF NOT EXISTS borrow_data(
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    bookId TEXT NOT NULL,
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (bookId) REFERENCES books(id) ON DELETE CASCADE
+    );
+    """);
+  }
+  Database get sqlite=>_sqlite;
 
   void insertRole(Role role){
       _sqlite.execute('INSERT OR REPLACE INTO roles(id,name) VALUES(?,?)',
@@ -27,6 +90,7 @@ class LibraryRepository{
       book.title,
       book.desc,
       book.authorId,
+      book.copies,
       book.rating]);
   }
 
@@ -35,7 +99,6 @@ class LibraryRepository{
       [author.id,
       author.surname,
       author.name,
-      author.copies,
       author.rating]);
   }
 
@@ -107,14 +170,14 @@ class LibraryRepository{
   }
 
   void updateBook(Book book){
-      _sqlite.execute('UPDATE books SET title=?,desc=?,authorId=?,rating=? WHERE id=?',
-      [book.title, book.desc, book.authorId, book.rating, book.id]);
-  }
+    _sqlite.execute('UPDATE books SET title=?,desc=?,authorId=?,copies=?,rating=? WHERE id=?',
+    [book.title, book.desc, book.authorId, book.copies, book.rating, book.id]);
+}
 
-  void updateAuthor(Author author){
-      _sqlite.execute('UPDATE authors SET surname=?,name=?,copies=?,rating=? WHERE id=?',
-      [author.surname, author.name, author.copies, author.rating, author.id]);
-  }
+void updateAuthor(Author author){
+    _sqlite.execute('UPDATE authors SET surname=?,name=?,rating=? WHERE id=?',
+    [author.surname, author.name, author.rating, author.id]);
+}
 
   void updateBorrowData(BorrowData borrowData){
       _sqlite.execute('UPDATE borrow_data SET userId=?,bookId=? WHERE id=?',
@@ -141,4 +204,17 @@ class LibraryRepository{
       _sqlite.execute('DELETE FROM borrow_data WHERE id=?',[id]);
   }
 
+  void close(){
+    _sqlite.dispose();
+  }
 }
+
+
+
+
+
+
+
+
+
+
