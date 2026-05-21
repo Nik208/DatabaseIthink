@@ -1,6 +1,7 @@
 import 'package:test/test.dart';
 import 'package:database/database.dart'; 
 import 'package:sqlite3/sqlite3.dart';
+import '../lib/src/domain/validators/validators.dart';
 
 
 

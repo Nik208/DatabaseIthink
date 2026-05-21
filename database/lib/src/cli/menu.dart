@@ -1,14 +1,24 @@
+// lib/src/cli/menu.dart
 import 'dart:io';
+import 'input_helper.dart';
+import 'package:database/src/data/repositories/role_repository.dart';
+import 'package:database/src/data/repositories/user_repository.dart';
+import 'package:database/src/data/repositories/author_repository.dart';
+import 'package:database/src/data/repositories/book_repository.dart';
+import 'package:database/src/data/repositories/borrow_repository.dart';
+import 'package:database/src/domain/models/role.dart';
+import 'package:database/src/domain/models/user.dart';
+import 'package:database/src/domain/models/author.dart';
+import 'package:database/src/domain/models/book.dart';
+import 'package:database/src/domain/models/borrowdata.dart';
 
-import '../data/library_database.dart';
-import '../domain/models/role.dart';
-import '../domain/models/user.dart';
-import '../domain/models/author.dart';
-import '../domain/models/book.dart';
-import '../domain/models/borrowdata.dart';
-
-
-void runMenu(LibraryDatabase db) {
+void runMenu(
+  RoleRepository roleRepo,
+  UserRepository userRepo,
+  AuthorRepository authorRepo,
+  BookRepository bookRepo,
+  BorrowRepository borrowRepo,
+) {
   while (true) {
     stdout.writeln('''
 --- Библиотека Книгоедов ---
@@ -32,54 +42,55 @@ void runMenu(LibraryDatabase db) {
 Выберите пункт:''');
 
     final choice = stdin.readLineSync()?.trim() ?? '';
+    
     switch (choice) {
       case '1':
-        _printRoles(db);
+        _printRoles(roleRepo);
         break;
       case '2':
-        _addRole(db);
+        _addRole(roleRepo);
         break;
       case '3':
-        _deleteRole(db);
+        _deleteRole(roleRepo);
         break;
       case '4':
-        _printUsers(db);
+        _printUsers(userRepo);
         break;
       case '5':
-        _addUser(db);
+        _addUser(userRepo);
         break;
       case '6':
-        _deleteUser(db);
+        _deleteUser(userRepo);
         break;
       case '7':
-        _printBooks(db);
+        _printBooks(bookRepo);
         break;
       case '8':
-        _addBook(db);
+        _addBook(bookRepo, authorRepo);
         break;
       case '9':
-        _deleteBook(db);
+        _deleteBook(bookRepo);
         break;
       case '10':
-        _printAuthors(db);
+        _printAuthors(authorRepo);
         break;
       case '11':
-        _addAuthor(db);
+        _addAuthor(authorRepo);
         break;
       case '12':
-        _deleteAuthor(db);
+        _deleteAuthor(authorRepo);
         break;
       case '13':
-        _printBorrowData(db);
+        _printBorrowData(borrowRepo);
         break;
       case '14':
-        _addBorrowData(db);
+        _addBorrowData(borrowRepo, userRepo, bookRepo);
         break;
       case '15':
-        _deleteBorrowData(db);
+        _deleteBorrowData(borrowRepo);
         break;
       case '16':
-        _printAllFromDb(db);
+        _printAllFromDb(roleRepo, userRepo, authorRepo, bookRepo, borrowRepo);
         break;
       case '0':
         stdout.writeln('До свидания.');
@@ -91,8 +102,8 @@ void runMenu(LibraryDatabase db) {
   }
 }
 
-void _printRoles(LibraryDatabase db) {
-  final list = db.getAllRoles();
+void _printRoles(RoleRepository roleRepo) {
+  final list = roleRepo.getAllRoles();
   if (list.isEmpty) {
     stdout.writeln('Ролей нет.');
     return;
@@ -102,8 +113,8 @@ void _printRoles(LibraryDatabase db) {
   }
 }
 
-void _printUsers(LibraryDatabase db) {
-  final list = db.getAllUsers();
+void _printUsers(UserRepository userRepo) {
+  final list = userRepo.getAllUsers();
   if (list.isEmpty) {
     stdout.writeln('Пользователей нет.');
     return;
@@ -113,8 +124,8 @@ void _printUsers(LibraryDatabase db) {
   }
 }
 
-void _printBooks(LibraryDatabase db) {
-  final list = db.getAllBooks();
+void _printBooks(BookRepository bookRepo) {
+  final list = bookRepo.getAllBooks();
   if (list.isEmpty) {
     stdout.writeln('Книг нет.');
     return;
@@ -124,8 +135,8 @@ void _printBooks(LibraryDatabase db) {
   }
 }
 
-void _printAuthors(LibraryDatabase db) {
-  final list = db.getAllAuthors();
+void _printAuthors(AuthorRepository authorRepo) {
+  final list = authorRepo.getAllAuthors();
   if (list.isEmpty) {
     stdout.writeln('Авторов нет.');
     return;
@@ -135,8 +146,8 @@ void _printAuthors(LibraryDatabase db) {
   }
 }
 
-void _printBorrowData(LibraryDatabase db) {
-  final list = db.getAllBorrowData();
+void _printBorrowData(BorrowRepository borrowRepo) {
+  final list = borrowRepo.getAllBorrowData();
   if (list.isEmpty) {
     stdout.writeln('Выдач нет.');
     return;
@@ -146,140 +157,149 @@ void _printBorrowData(LibraryDatabase db) {
   }
 }
 
-void _printAllFromDb(LibraryDatabase db) {
+void _printAllFromDb(
+  RoleRepository roleRepo,
+  UserRepository userRepo,
+  AuthorRepository authorRepo,
+  BookRepository bookRepo,
+  BorrowRepository borrowRepo,
+) {
   stdout.writeln('------- Роли -------');
-  _printRoles(db);
+  _printRoles(roleRepo);
   stdout.writeln('------- Пользователи -------');
-  _printUsers(db);
+  _printUsers(userRepo);
   stdout.writeln('------- Книги -------');
-  _printBooks(db);
+  _printBooks(bookRepo);
   stdout.writeln('------- Авторы -------');
-  _printAuthors(db);
+  _printAuthors(authorRepo);
   stdout.writeln('------- Выдачи -------');
-  _printBorrowData(db);
+  _printBorrowData(borrowRepo);
 }
 
-void _addRole(LibraryDatabase db) {
-  final id = _read('id роли: ');
-  final name = _read('название: ');
-
-  validateRequired(name, 'Название');
-  db.insertRole(Role(id: id, name: name));
+void _addRole(RoleRepository roleRepo) {
+  final id = readId('роли');
+  final name = readRequiredString('название: ', 'Название');
+  roleRepo.insertRole(Role(id: id, name: name));
   stdout.writeln('Роль сохранена.');
 }
 
-void _deleteRole(LibraryDatabase db) {
-  final id = _read('id роли для удаления: ');
-  db.deleteRole(id);
+void _deleteRole(RoleRepository roleRepo) {
+  final id = readId('роли для удаления');
+  roleRepo.deleteRole(id);
   stdout.writeln('Готово (если id был в базе).');
 }
 
-void _addUser(LibraryDatabase db) {
-  final id = _read('id пользователя: ');
-  final userName = _read('имя пользователя: ');
-  final password = _read('пароль: ');
-  final borrowTotal = int.parse(_read('количество книг: '));
-  final role = _read('роль: ');
+void _addUser(UserRepository userRepo) {
+  final id = readId('пользователя');
+  final userName = readRequiredString('имя пользователя: ', 'Имя пользователя');
+  final password = readRequiredString('пароль: ', 'Пароль');
+  final borrowTotal = readBorrowTotal('количество книг: ');
+  final role = readRequiredString('роль: ', 'Роль');
 
-  validateRequired(userName, 'Имя пользователя');
-  validateRequired(password, 'Пароль');
-  validatePositiveInt(borrowTotal, 'Количество книг');
-  validateRequired(role, 'Роль');
-
-  db.insertUser(User(id: id, userName: userName, password: password, borrowTotal: borrowTotal, role: role));
+  userRepo.insertUser(User(
+    id: id,
+    userName: userName,
+    password: password,
+    borrowTotal: borrowTotal,
+    role: role,
+  ));
   stdout.writeln('Пользователь сохранён.');
 }
 
-void _deleteUser(LibraryDatabase db) {
-  final id = _read('id пользователя для удаления: ');
-  db.deleteUser(id);
+void _deleteUser(UserRepository userRepo) {
+  final id = readId('пользователя для удаления');
+  userRepo.deleteUser(id);
   stdout.writeln('Готово (если id был в базе).');
 }
 
-void _addBook(LibraryDatabase db) {
-  final id = _read('id книги: ');
-  final title = _read('название: ');
-  final desc = _read('описание: ');
-  final authorId = _read('id автора: ');
-  final copies = int.parse(_read('количество копий: '));
-  final rating = double.parse(_read('рейтинг: ').replaceAll(',', '.'));
+void _addBook(BookRepository bookRepo, AuthorRepository authorRepo) {
+  final id = readId('книги');
+  final title = readRequiredString('название: ', 'Название');
+  final desc = readRequiredString('описание: ', 'Описание');
+  final authorId = readRequiredString('id автора: ', 'ID автора');
+  final copies = readPositiveInt('количество копий: ', 'Количество копий');
+  final rating = readRating('рейтинг: ');
 
-  validateRequired(title, 'Название');
-  validateRequired(desc, 'Описание');
-  validateRequired(authorId, 'ID автора');
-  validatePositiveInt(copies, 'Количество копий');
-  validatePositiveDouble(rating, 'Рейтинг');
+  final author = authorRepo.getAuthorById(authorId);
+  if (author == null) {
+    stdout.writeln('Автор с id $authorId не найден');
+    return;
+  }
 
-  db.insertBook(Book(id: id, title: title, desc: desc, authorId: authorId, copies: copies,  rating: rating));
+  bookRepo.insertBook(Book(
+    id: id,
+    title: title,
+    desc: desc,
+    authorId: authorId,
+    copies: copies,
+    rating: rating,
+  ));
   stdout.writeln('Книга сохранена.');
 }
 
-void _deleteBook(LibraryDatabase db) {
-  final id = _read('id книги для удаления: ');
-  db.deleteBook(id);
+void _deleteBook(BookRepository bookRepo) {
+  final id = readId('книги для удаления');
+  bookRepo.deleteBook(id);
   stdout.writeln('Готово (если id был в базе).');
 }
 
-void _addAuthor(LibraryDatabase db) {
-  final id = _read('id автора: ');
-  final surname = _read('фамилия: ');
-  final name = _read('имя: ');
-  final rating = double.parse(_read('рейтинг: ').replaceAll(',', '.'));
+void _addAuthor(AuthorRepository authorRepo) {
+  final id = readId('автора');
+  final surname = readRequiredString('фамилия: ', 'Фамилия');
+  final name = readRequiredString('имя: ', 'Имя');
+  final rating = readRating('рейтинг: ');
 
-  validateRequired(surname, 'Фамилия');
-  validateRequired(name, 'Имя');
-  validatePositiveDouble(rating, 'Рейтинг');
-
-  db.insertAuthor(Author(id: id, surname: surname, name: name, rating: rating));
+  authorRepo.insertAuthor(Author(
+    id: id,
+    surname: surname,
+    name: name,
+    rating: rating,
+  ));
   stdout.writeln('Автор сохранён.');
 }
 
-void _deleteAuthor(LibraryDatabase db) {
-  final id = _read('id автора для удаления: ');
-  db.deleteAuthor(id);
+void _deleteAuthor(AuthorRepository authorRepo) {
+  final id = readId('автора для удаления');
+  authorRepo.deleteAuthor(id);
   stdout.writeln('Готово (если id был в базе).');
 }
 
-void _addBorrowData(LibraryDatabase db) {
-  final id = _read('id выдачи: ');
-  final userId = _read('id пользователя: ');
-  final bookId = _read('id книги: ');
+void _addBorrowData(
+  BorrowRepository borrowRepo,
+  UserRepository userRepo,
+  BookRepository bookRepo,
+) {
+  final id = readId('выдачи');
+  final userId = readRequiredString('id пользователя: ', 'ID пользователя');
+  final bookId = readRequiredString('id книги: ', 'ID книги');
 
-  validateRequired(userId, 'ID пользователя');
-  validateRequired(bookId, 'ID книги');
+  final user = userRepo.getUserById(userId);
+  if (user == null) {
+    stdout.writeln('Пользователь с id $userId не найден');
+    return;
+  }
 
-  db.insertBorrowData(BorrowData(id: id, userId: userId, bookId: bookId));
+  final book = bookRepo.getBookById(bookId);
+  if (book == null) {
+    stdout.writeln('Книга с id $bookId не найдена');
+    return;
+  }
+
+  if (book.copies <= 0) {
+    stdout.writeln('Нет доступных копий книги');
+    return;
+  }
+
+  borrowRepo.insertBorrowData(BorrowData(
+    id: id,
+    userId: userId,
+    bookId: bookId,
+  ));
   stdout.writeln('Выдача сохранена.');
 }
 
-void _deleteBorrowData(LibraryDatabase db) {
-  final id = _read('id выдачи для удаления: ');
-  db.deleteBorrowData(id);
+void _deleteBorrowData(BorrowRepository borrowRepo) {
+  final id = readId('выдачи для удаления');
+  borrowRepo.deleteBorrowData(id);
   stdout.writeln('Готово (если id был в базе).');
-}
-
-String _read(String label) {
-  stdout.write(label);
-  return stdin.readLineSync()?.trim() ?? '';
-}
-
-String validateRequired(String value, String fieldName) {
-  if (value.trim().isEmpty) {
-    throw Exception('$fieldName не может быть пустым');
-  }
-  return value.trim();
-}
-
-int validatePositiveInt(int value, String fieldName) {
-  if (value <= 0) {
-    throw Exception('$fieldName должно быть больше 0');
-  }
-  return value;
-}
-
-double validatePositiveDouble(double value, String fieldName) {
-  if (value <= 0) {
-    throw Exception('$fieldName должно быть больше 0');
-  }
-  return value;
 }
